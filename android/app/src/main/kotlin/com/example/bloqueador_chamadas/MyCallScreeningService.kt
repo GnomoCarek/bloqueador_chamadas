@@ -17,38 +17,106 @@ class MyCallScreeningService : CallScreeningService() {
 
     @SuppressLint("NewApi")
     override fun onScreenCall(callDetails: Call.Details) {
-        Log.d(TAG, "onScreenCall: Received a call")
-        val phoneNumber = callDetails.handle.schemeSpecificPart
+        Log.d(TAG, "onScreenCall: Incoming call detected")
+        
+        val handle = callDetails.handle
+        if (handle == null) {
+            Log.d(TAG, "onScreenCall: Handle is null (Private number). Blocking.")
+            blockCall(callDetails)
+            return
+        }
+
+        val phoneNumber = handle.schemeSpecificPart ?: ""
         Log.d(TAG, "onScreenCall: Phone number is $phoneNumber")
 
-        val shouldBlock = !isNumberInContacts(applicationContext.contentResolver, phoneNumber)
-        Log.d(TAG, "onScreenCall: Should block call? $shouldBlock")
+        if (phoneNumber.isBlank()) {
+            Log.d(TAG, "onScreenCall: Phone number is blank. Blocking.")
+            blockCall(callDetails)
+            return
+        }
 
+        val isInContacts = isNumberInContacts(applicationContext.contentResolver, phoneNumber)
+        Log.d(TAG, "onScreenCall: Is number in contacts? $isInContacts")
+
+        if (isInContacts) {
+            Log.d(TAG, "onScreenCall: Number found in contacts. Allowing call.")
+            allowCall(callDetails)
+        } else {
+            Log.d(TAG, "onScreenCall: Number not in contacts. Blocking call.")
+            blockCall(callDetails)
+        }
+    }
+
+    private fun blockCall(callDetails: Call.Details) {
         val response = CallResponse.Builder()
-            .setDisallowCall(shouldBlock)
-            .setRejectCall(shouldBlock)
-            .setSkipCallLog(shouldBlock)
-            .setSkipNotification(shouldBlock)
+            .setDisallowCall(true)
+            .setRejectCall(true)
+            .setSilenceCall(true)
+            .setSkipCallLog(true)
+            .setSkipNotification(true)
             .build()
-        
         respondToCall(callDetails, response)
+        Log.d(TAG, "blockCall: Call blocked and silenced")
+    }
+
+    private fun allowCall(callDetails: Call.Details) {
+        val response = CallResponse.Builder()
+            .setDisallowCall(false)
+            .setRejectCall(false)
+            .setSilenceCall(false)
+            .setSkipCallLog(false)
+            .setSkipNotification(false)
+            .build()
+        respondToCall(callDetails, response)
+        Log.d(TAG, "allowCall: Call allowed")
     }
 
     private fun isNumberInContacts(contentResolver: ContentResolver, phoneNumber: String): Boolean {
-        if (phoneNumber.isBlank()) {
+        // Basic normalization: remove spaces, dashes, etc. but keep +
+        val normalizedNumber = phoneNumber.replace(Regex("[^0-9+]"), "")
+        
+        if (normalizedNumber.isBlank()) {
             return false
         }
-        val lookupUri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phoneNumber))
-        val projection = arrayOf(ContactsContract.PhoneLookup._ID)
+
+        // Try PhoneLookup first (standard way)
+        val lookupUri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(normalizedNumber))
+        val projection = arrayOf(ContactsContract.PhoneLookup._ID, ContactsContract.PhoneLookup.DISPLAY_NAME)
         
-        val cursor = contentResolver.query(lookupUri, projection, null, null, null)
-        cursor.use {
-            if (it != null && it.moveToFirst()) {
-                Log.d(TAG, "isNumberInContacts: Number $phoneNumber found in contacts.")
-                return true
+        try {
+            contentResolver.query(lookupUri, projection, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val contactName = cursor.getString(cursor.getColumnIndexOrDefault(ContactsContract.PhoneLookup.DISPLAY_NAME, "Unknown"))
+                    Log.d(TAG, "isNumberInContacts: Found contact: $contactName")
+                    return true
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "isNumberInContacts: Error querying contacts", e)
         }
-        Log.d(TAG, "isNumberInContacts: Number $phoneNumber not found in contacts.")
+
+        // Fallback: search in common data kinds if PhoneLookup fails (some devices have issues with PhoneLookup)
+        val uri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI
+        val selection = "${ContactsContract.CommonDataKinds.Phone.NUMBER} = ? OR ${ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER} = ?"
+        val selectionArgs = arrayOf(normalizedNumber, normalizedNumber)
+        
+        try {
+            contentResolver.query(uri, arrayOf(ContactsContract.CommonDataKinds.Phone.CONTACT_ID), selection, selectionArgs, null)?.use { cursor ->
+                if (cursor.count > 0) {
+                    Log.d(TAG, "isNumberInContacts: Found number in CommonDataKinds.Phone fallback")
+                    return true
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "isNumberInContacts: Error in fallback query", e)
+        }
+
         return false
+    }
+
+    // Helper extension to handle missing columns safely
+    private fun android.database.Cursor.getColumnIndexOrDefault(columnName: String, defaultValue: String): Int {
+        val index = getColumnIndex(columnName)
+        return if (index >= 0) index else -1
     }
 }
