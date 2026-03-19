@@ -19,6 +19,16 @@ class MyCallScreeningService : CallScreeningService() {
     override fun onScreenCall(callDetails: Call.Details) {
         Log.d(TAG, "onScreenCall: Incoming call detected")
         
+        // Check if blocking is enabled in SharedPreferences
+        val prefs = applicationContext.getSharedPreferences("FlutterSharedPreferences", android.content.Context.MODE_PRIVATE)
+        val isBlockingEnabled = prefs.getBoolean("flutter.isBlockingEnabled", false)
+        
+        if (!isBlockingEnabled) {
+            Log.d(TAG, "onScreenCall: Blocking is disabled by user. Allowing call.")
+            allowCall(callDetails)
+            return
+        }
+
         val handle = callDetails.handle
         if (handle == null) {
             Log.d(TAG, "onScreenCall: Handle is null (Private number). Blocking.")
@@ -57,6 +67,11 @@ class MyCallScreeningService : CallScreeningService() {
             .build()
         respondToCall(callDetails, response)
         Log.d(TAG, "blockCall: Call blocked and silenced")
+
+        // Increment blocked calls counter
+        val prefs = applicationContext.getSharedPreferences("FlutterSharedPreferences", android.content.Context.MODE_PRIVATE)
+        val currentCount = prefs.getInt("flutter.blockedCallsCount", 0)
+        prefs.edit().putInt("flutter.blockedCallsCount", currentCount + 1).apply()
     }
 
     private fun allowCall(callDetails: Call.Details) {
