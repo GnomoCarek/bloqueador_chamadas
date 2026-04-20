@@ -1,4 +1,4 @@
-# Shield Call - Bloqueador de Chamadas Inteligente
+# Block Call - Bloqueador de Chamadas Inteligente
 
 Este aplicativo foi desenvolvido em Flutter com o objetivo de oferecer uma camada de privacidade e segurança para o usuário, permitindo o bloqueio automático de chamadas telefônicas de números que não estejam salvos na agenda de contatos do dispositivo.
 
@@ -17,7 +17,7 @@ Implementamos uma série de atualizações focadas em experiência do usuário e
 O aplicativo utiliza a API de Call Screening do Android (API 29+) para identificar chamadas recebidas em tempo real:
 
 1. **Permissões:** O app solicita acesso aos contatos e ao estado do telefone.
-2. **Serviço Padrão:** O usuário define o Shield Call como o serviço de triagem de chamadas padrão (Default Call Screening App).
+2. **Serviço Padrão:** O usuário define o Block Call como o serviço de triagem de chamadas padrão (Default Call Screening App).
 3. **Triagem Inteligente:** Quando uma chamada é recebida, o serviço nativo verifica se o número consta na agenda de contatos.
 4. **Bloqueio Silencioso:** Se o número for desconhecido, a chamada é rejeitada silenciosamente, sem interrupções, e o contador de bloqueios é incrementado.
 
@@ -57,7 +57,7 @@ O aplicativo utiliza a API de Call Screening do Android (API 29+) para identific
 Ao abrir o aplicativo pela primeira vez:
 1. Conceda as permissões de **Telefone** e **Contatos**.
 2. Clique no botão central (Escudo) para ativar a proteção.
-3. Confirme a alteração para tornar o Shield Call o serviço de triagem padrão do sistema.
+3. Confirme a alteração para tornar o Block Call o serviço de triagem padrão do sistema.
 
 ## Observações Técnicas
 

@@ -310,7 +310,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     const SizedBox(height: 10),
                     InkWell(
                       onTap: () async {
-                        final Uri url = Uri.parse('https://github.com/GnomoCarek');
+                        final Uri url = Uri.parse('https://github.com/GnomoCarek/BlockCall');
                         if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
                           debugPrint('Could not launch $url');
                         }
