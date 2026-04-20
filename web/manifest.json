@@ -1,6 +1,6 @@
 {
-    "name": "bloqueador_chamadas",
-    "short_name": "bloqueador_chamadas",
+    "name": "Block Call",
+    "short_name": "Block Call",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.CALL_PHONE" />
 
     <application
-        android:label="bloqueador_chamadas"
+        android:label="Block Call"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity
